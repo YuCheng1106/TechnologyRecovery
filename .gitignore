@@ -1,6 +1,7 @@
 ../.idea
 .idea
 /embed_model
+.env
 *.jar
 *.war
 *.ear
