@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Sapper Workspace</title>
+    <link rel="stylesheet" href="../static/css/login.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../static/js/login.js"></script>
+</head>
+<body>
+<div id="root" style="width:100%">
+    <div class="container">
+        <div class="welcome">
+            <div class="pinkbox">
+                <div class="signup nodisplay">
+                    <h1>注册</h1>
+                    <form id="signup-form" autocomplete="off">
+                        <input type="text" id="signup-username" placeholder="账号">
+                        <input type="email" id="signup-email" placeholder="邮箱">
+                        <input type="password" id="signup-password" placeholder="密码">
+                        <input type="password" id="signup-repeat-password" placeholder="重复密码">
+                        <button type="button" class="button submit">创建账号</button>
+                    </form>
+                </div>
+                <div class="signin">
+                    <h1>登录</h1>
+                    <form id="signin-form" class="more-padding" autocomplete="off">
+                        <input type="text" id="signin-username" placeholder="账号">
+                        <input type="password" id="signin-password" placeholder="密码">
+                        <div class="checkbox">
+                            <input type="checkbox" id="remember"/>
+                            <label for="remember">记住我</label>
+                        </div>
+                        <button type="button" class="button submit">登录</button>
+                    </form>
+                </div>
+            </div>
+            <div class="leftbox">
+                <p class="account">已有账号</p>
+                <button class="button" id="signin">登录</button>
+            </div>
+            <div class="rightbox">
+                <p class="account">还没有账号?</p>
+                <button class="button" id="signup">注册</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // 当点击注册的时候
+        $('#signup').click(function () {
+            // 平移粉色的盒子，显示注册页面
+            $('.pinkbox').css('transform', 'translateX(80%)');
+            // 隐藏登录表单
+            $('.signin').addClass('nodisplay');
+            // 显示注册表单
+            $('.signup').removeClass('nodisplay');
+        });
+
+
+        // 当点击登录的时候
+        $('#signin').click(function () {
+            // 平移粉色的盒子，显示注册页面
+            $('.pinkbox').css('transform', 'translateX(0%)');
+            // 隐藏注册表单
+            $('.signup').addClass('nodisplay');
+            // 显示登录表单
+            $('.signin').removeClass('nodisplay');
+
+        });
+    </script>
+</div>
+</body>
+</html>
