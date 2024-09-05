@@ -1,0 +1,11 @@
+../.idea
+.idea
+/embed_model
+.env
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+*.cmd

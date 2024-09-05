@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>管理组</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            height: calc(100% - 40px);
+            margin: 20px;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: auto;
+        }
+
+        .group-selector {
+            margin-bottom: 10px;
+            height: 30px;
+            width: 100px;
+        }
+
+        .roles-table {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            height: 50%;
+        }
+
+        .role-list {
+            position: relative;
+            width: 48%;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .role-list h3 {
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .worklog-standard {
+            width: 100%;
+            height: calc(50% - 40px);
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .save-button {
+            align-self: flex-end;
+            padding: 10px 20px;
+            background-color: #4285f4;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .save-button:hover {
+            background-color: #357ae8;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: #4285f4;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .back-button:hover {
+            color: #3367d6; /* 悬停时颜色变深 */
+        }
+
+        .back-button svg {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+        }
+
+        .add-button {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            background-color: #4285f4;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 20px;
+            line-height: 30px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .add-button:hover {
+            background-color: #357ae8;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            position: relative;
+        }
+
+        .modal-footer {
+            padding: 10px 20px;
+
+        }
+
+        .modal-footer button {
+            padding: 10px 20px;
+            background-color: #4285f4;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 17px;
+            margin: 0 10px;
+        }
+
+        .modal-footer button:hover {
+            background-color: #357ae8;
+        }
+
+        .create-group-button {
+            padding: 10px 20px;
+            background-color: #4285f4;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .create-group-button:hover {
+            background-color: #357ae8;
+        }
+
+
+    </style>
+</head>
+<body>
+
+<a href="/" class="back-button">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    返回
+</a>
+<div id="create-group-modal" class="modal">
+    <div class="modal-content">
+        <h3>创建新组</h3>
+        <input type="text" id="new-group-name" placeholder="输入组名"
+               style="width: 100%; padding: 8px; margin-bottom: 20px; box-sizing: border-box;">
+        <div class="modal-footer">
+            <button class="save-button" onclick="confirmCreateGroup()">确定</button>
+            <button class="save-button" onclick="closeCreateGroupModal()">取消</button>
+        </div>
+    </div>
+</div>
+<div class="container">
+    <div style="display:flex; justify-content: space-between; align-items: center;">
+    <div>
+        <span style="font-size: 20px">选择组 :</span>
+        <select id="group-selector" class="group-selector"></select>
+    </div>
+    <button class="create-group-button" onclick="openCreateGroupModal()">创建组</button>
+</div>
+
+
+    <div class="roles-table">
+        <div class="role-list" id="admin-group">
+            <h3>管理员组</h3>
+            <!-- 管理员组成员将通过 JavaScript 动态填充 -->
+            <button class="add-button" onclick="openModal('admin')">+</button>
+        </div>
+        <div class="role-list" id="user-group">
+            <h3>用户组</h3>
+            <!-- 用户组成员将通过 JavaScript 动态填充 -->
+            <button class="add-button" onclick="openModal('user')">+</button>
+        </div>
+
+    </div>
+
+    <textarea id="worklog-standard" class="worklog-standard"></textarea>
+    <button class="save-button" onclick="saveWorklogStandard()">修改工作日志标准</button>
+</div>
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <h3 id="modal-title"></h3>
+        <div id="modal-list" class="modal-list">
+            <!-- 动态加载可选择的用户列表 -->
+        </div>
+        <div class="modal-footer">
+            <button onclick="confirmSelection()">确定</button>
+            <button onclick="closeModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        const globalName = localStorage.getItem("global_name");
+        const role = localStorage.getItem("role");
+
+        if (!globalName || !role) {
+            alert("请先登录！");
+            window.location.href = "/"; // 重定向到登录界面
+        } else {
+            // 如果存在 global_name 和 role，执行页面的其他逻辑
+        }
+    });
+    $.ajax({
+        url: "/your-endpoint",
+        method: "POST",
+        data: {
+            global_name: localStorage.getItem("global_name"),
+            role: localStorage.getItem("role"),
+            // 其他数据
+        },
+        success: function (response) {
+            // 处理成功响应
+        },
+        error: function (xhr, status, error) {
+            // 处理错误响应
+        }
+    });
+    document.addEventListener("DOMContentLoaded", function () {
+        fetch('/api/groups')
+            .then(response => response.json())
+            .then(data => {
+                const groupSelector = document.getElementById('group-selector');
+                data.groups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.textContent = group.name;
+                    groupSelector.appendChild(option);
+                });
+
+                groupSelector.addEventListener('change', function () {
+                    const groupId = this.value;
+                    fetch(`/api/groups/${groupId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            document.getElementById('admin-group').innerHTML = data.admins.map(admin => `<p>${admin.name}</p>`).join('');
+                            document.getElementById('user-group').innerHTML = data.users.map(user => `<p>${user.name}</p>`).join('');
+                            document.getElementById('worklog-standard').value = data.worklog_standard;
+                        });
+                });
+
+                groupSelector.dispatchEvent(new Event('change')); // 触发一次默认加载第一个组的信息
+            });
+    });
+
+    function saveWorklogStandard() {
+        const groupId = document.getElementById('group-selector').value;
+        const worklogStandard = document.getElementById('worklog-standard').value;
+
+        fetch(`/api/groups/${groupId}/worklog-standard`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({worklog_standard: worklogStandard})
+        })
+            .then(response => {
+                if (response.ok) {
+                    alert('工作日志标准已更新');
+                } else {
+                    alert('更新失败');
+                }
+            });
+    }
+
+    function openModal(role) {
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalList = document.getElementById('modal-list');
+
+        modalTitle.textContent = role === 'admin' ? '选择管理员' : '选择用户';
+        modal.style.display = 'flex';
+
+        fetch(`/api/users?role=${role}`)
+            .then(response => response.json())
+            .then(data => {
+                const currentMembers = Array.from(document.getElementById(`${role}-group`).querySelectorAll('p')).map(p => p.textContent);
+                modalList.innerHTML = '';
+                data.users.filter(user => !currentMembers.includes(user.name)).forEach(user => {
+                    const div = document.createElement('div');
+                    div.innerHTML = `<input type="checkbox" value="${user.id}">${user.name}`;
+                    modalList.appendChild(div);
+                });
+            });
+
+        modal.dataset.role = role;
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('modal');
+        modal.style.display = 'none';
+    }
+
+    function confirmSelection() {
+        const modal = document.getElementById('modal');
+        const role = modal.dataset.role;
+        const selectedUserIds = Array.from(document.querySelectorAll('#modal-list input:checked')).map(input => input.value);
+
+        const groupId = document.getElementById('group-selector').value;
+
+        fetch(`/api/groups/${groupId}/add-users`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                role: role,
+                user_ids: selectedUserIds
+            })
+        }).then(response => {
+            if (response.ok) {
+                // 刷新组成员列表
+                document.getElementById('group-selector').dispatchEvent(new Event('change'));
+                closeModal();
+            } else {
+                alert('添加成员失败');
+            }
+        });
+    }
+    function openCreateGroupModal() {
+    const modal = document.getElementById('create-group-modal');
+    modal.style.display = 'flex';
+}
+
+function closeCreateGroupModal() {
+    const modal = document.getElementById('create-group-modal');
+    modal.style.display = 'none';
+}
+
+function confirmCreateGroup() {
+    const newGroupName = document.getElementById('new-group-name').value.trim();
+
+    if (!newGroupName) {
+        alert('组名不能为空');
+        return;
+    }
+
+    // 检查组名是否重复
+    const existingGroupNames = Array.from(document.getElementById('group-selector').options).map(option => option.textContent);
+    if (existingGroupNames.includes(newGroupName)) {
+        alert('组名已存在，请修改');
+        return;
+    }
+
+    // 创建新组并更新数据库
+    fetch('/api/groups', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({name: newGroupName, worklog_standard: '这是标准'})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 更新选择器
+            const groupSelector = document.getElementById('group-selector');
+            const option = document.createElement('option');
+            option.value = data.group_id; // 假设后端返回新创建组的ID
+            option.textContent = newGroupName;
+            groupSelector.appendChild(option);
+            groupSelector.value = data.group_id;
+            alert('组创建成功');
+            closeCreateGroupModal();
+        } else {
+            alert('创建失败');
+        }
+    });
+}
+</script>
+
+</body>
+</html>

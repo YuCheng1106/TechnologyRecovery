@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>查看日志</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            height: calc(100% - 40px);
+            margin: 20px;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: auto;
+        }
+
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: #4285f4;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .back-button:hover {
+            color: #3367d6; /* 悬停时颜色变深 */
+        }
+
+        .back-button svg {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .s_ipt {
+            width: 80%;
+            height: 40px;
+            padding: 0 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+
+        .s_ipt:focus {
+            border-color: #3385ff; /* 选中时边框变为蓝色 */
+            outline: none; /* 移除默认的选中样式 */
+        }
+
+        .s_ipt::placeholder {
+            padding-left: 3px;
+            border-right: none;
+            color: #aaa;
+            font-size: 13px;
+
+        }
+
+        .s_btn {
+            height: 40px;
+            padding: 0 20px;
+            border: none;
+            background-color: #3385ff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .s_btn:hover {
+            background-color: #2a72d6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        .table-container {
+            flex: 1; /* 让table-container填满剩余空间 */
+            overflow-y: auto; /* 启用垂直滚动条 */
+            border: 1px solid #ddd;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa; /* 固定表头背景色 */
+            z-index: 1; /* 确保表头在内容之上 */
+            text-align: center;
+            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        th:nth-child(1), td:nth-child(1) {
+            width: 15%; /* 姓名列宽度 */
+            text-align: center;
+        }
+
+        th:nth-child(2), td:nth-child(2) {
+            width: 15%; /* 时间列宽度 */
+            text-align: center;
+        }
+
+        th:nth-child(3), td:nth-child(3) {
+            width: 70%; /* 工作日志列宽度 */
+            text-align: left; /* 工作日志居左对齐 */
+        }
+
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: #f9f9f9;
+        }
+
+        #groupSelector {
+            height: 40px;
+            padding: 0 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            background-color: #ffffff;
+            margin-left: 20px; /* 给选择器和搜索框按钮之间留一些间距 */
+            cursor: pointer;
+        }
+
+
+    </style>
+</head>
+<body>
+<a href="/" class="back-button">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round"/>
+    </svg>
+    返回
+</a>
+<div class="container">
+    <div class="search-container">
+        <input type="text" class="s_ipt" name="wd" id="kw" maxlength="105" autocomplete="off"
+               placeholder="请输入搜索内容">
+        <button class="s_btn" type="submit" onclick="searchLogs()">搜索</button>
+
+        <!-- 添加组选择器 -->
+        <select id="groupSelector" onchange="filterByGroup()">
+            <option value="all">全部</option>
+            <!-- 动态生成组的选项 -->
+        </select>
+    </div>
+    <div class="table-container">
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>姓名</th>
+                <th>时间</th>
+                <th>工作日志</th>
+            </tr>
+            </thead>
+            <tbody id="logTableBody">
+            {% for log in logs %}
+                <tr>
+                    <td>{{ log['姓名'] }}</td>
+                    <td>{{ log['时间'] }}</td>
+                    <td>{{ log['工作日志'] }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+    {#document.addEventListener("DOMContentLoaded", function () {#}
+    {#    const globalName = localStorage.getItem("global_name");#}
+    {#    const role = localStorage.getItem("role");#}
+    {##}
+    {#    if (!globalName || !role) {#}
+    {#        alert("请先登录！");#}
+    {#        window.location.href = "/"; // 重定向到登录界面#}
+    {#    } else {#}
+    {#        loadGroups();#}
+    {#        loadLogs();#}
+    {#    }#}
+    {# });#}
+
+    // 加载组选择器选项
+    function loadGroups() {
+        fetch('/groups')
+            .then(response => response.json())
+            .then(groups => {
+                const selector = document.getElementById('groupSelector');
+                groups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.text = group.组名;
+                    selector.appendChild(option);
+                });
+            });
+    }
+
+    // 加载工作日志
+    function loadLogs(group_id = null) {
+        const role = localStorage.getItem("role");
+        const globalName = localStorage.getItem("global_name");
+
+        fetch('/logs', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({group_id: group_id, role: role, user_name: globalName})
+        })
+            .then(response => response.json())
+            .then(logs => {
+                const tableBody = document.getElementById('logTableBody');
+                tableBody.innerHTML = ''; // 清空当前表内容
+                logs.forEach(log => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${log.姓名}</td><td>${log.时间}</td><td>${log.工作日志}</td>`;
+                    tableBody.appendChild(row);
+                });
+            });
+    }
+
+    // 根据选择的组筛选日志
+    function filterByGroup() {
+        const selectedGroup = document.getElementById('groupSelector').value;
+        if (selectedGroup === "all") {
+            loadLogs(); // 显示全部
+        } else {
+            loadLogs(selectedGroup); // 根据选择的组显示日志
+        }
+    }
+
+    // 搜索日志
+    function searchLogs() {
+        const input = document.getElementById('kw').value.toLowerCase();
+        const table = document.getElementById('logTableBody');
+        const rows = table.getElementsByTagName('tr');
+
+        for (let i = 0; i < rows.length; i++) {
+            const logText = rows[i].getElementsByTagName('td')[1].textContent.toLowerCase();
+            if (logText.includes(input)) {
+                rows[i].style.display = ''; // 显示匹配行
+            } else {
+                rows[i].style.display = 'none'; // 隐藏不匹配行
+            }
+        }
+    }
+
+    document.getElementById('kw').addEventListener('keypress', function (event) {
+        if (event.key === 'Enter') {
+            searchLogs();
+        }
+    });
+
+</script>
+</body>
+</html>
