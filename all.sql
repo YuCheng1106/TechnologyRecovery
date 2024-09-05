@@ -34,3 +34,4 @@ CREATE TABLE workLog (
     INDEX idx_worklog_uuid (uuid),
     INDEX idx_worklog_id (id)
 );
+

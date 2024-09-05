@@ -35,6 +35,7 @@ app.add_middleware(
 # 注册路由
 app.include_router(user_routes.router, tags=["users"])
 app.include_router(worklog_routes.router, tags=["workLogs"])
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 # 配置模板路径
 templates = Jinja2Templates(directory="templates")
