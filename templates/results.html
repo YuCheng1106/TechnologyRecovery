@@ -78,6 +78,11 @@
             text-decoration: none;
             color: #4285f4;
             font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .back-button:hover {
+            color: #3367d6; /* 悬停时颜色变深 */
         }
 
         .back-button svg {
@@ -190,6 +195,32 @@
 </div>
 <script>
     let loadingInterval;
+    $(document).ready(function() {
+    const globalName = localStorage.getItem("global_name");
+    const role = localStorage.getItem("role");
+
+    if (!globalName || !role) {
+        alert("请先登录！");
+        window.location.href = "/"; // 重定向到登录界面
+    } else {
+        // 如果存在 global_name 和 role，执行页面的其他逻辑
+    }
+});
+    $.ajax({
+    url: "/your-endpoint",
+    method: "POST",
+    data: {
+        global_name: localStorage.getItem("global_name"),
+        role: localStorage.getItem("role"),
+        // 其他数据
+    },
+    success: function(response) {
+        // 处理成功响应
+    },
+    error: function(xhr, status, error) {
+        // 处理错误响应
+    }
+});
 
     document.addEventListener('DOMContentLoaded', (event) => {
         const query = "{{ query }}";

@@ -47,6 +47,11 @@
             text-decoration: none;
             color: #4285f4;
             font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .back-button:hover {
+            color: #3367d6; /* 悬停时颜色变深 */
         }
 
         .back-button svg {
@@ -62,7 +67,7 @@
         }
 
         .s_ipt {
-            width: 90%;
+            width: 80%;
             height: 40px;
             padding: 0 10px;
             border: 1px solid #ddd;
@@ -115,8 +120,23 @@
             top: 0;
             background-color: #f8f9fa; /* 固定表头背景色 */
             z-index: 1; /* 确保表头在内容之上 */
-            text-align: left;
+            text-align: center;
             box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        th:nth-child(1), td:nth-child(1) {
+            width: 15%; /* 姓名列宽度 */
+            text-align: center;
+        }
+
+        th:nth-child(2), td:nth-child(2) {
+            width: 15%; /* 时间列宽度 */
+            text-align: center;
+        }
+
+        th:nth-child(3), td:nth-child(3) {
+            width: 70%; /* 工作日志列宽度 */
+            text-align: left; /* 工作日志居左对齐 */
         }
 
         th, td {
@@ -126,6 +146,17 @@
 
         tbody tr:nth-child(odd) {
             background-color: #f9f9f9;
+        }
+
+        #groupSelector {
+            height: 40px;
+            padding: 0 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            background-color: #ffffff;
+            margin-left: 20px; /* 给选择器和搜索框按钮之间留一些间距 */
+            cursor: pointer;
         }
 
 
@@ -144,24 +175,28 @@
         <input type="text" class="s_ipt" name="wd" id="kw" maxlength="105" autocomplete="off"
                placeholder="请输入搜索内容">
         <button class="s_btn" type="submit" onclick="searchLogs()">搜索</button>
+
+        <!-- 添加组选择器 -->
+        <select id="groupSelector" onchange="filterByGroup()">
+            <option value="all">全部</option>
+            <!-- 动态生成组的选项 -->
+        </select>
     </div>
     <div class="table-container">
         <table class="table table-striped">
             <thead>
             <tr>
-                <th>ID</th>
-                <th>解决问题</th>
-                <th>解决方法</th>
-                <th>解决效果</th>
+                <th>姓名</th>
+                <th>时间</th>
+                <th>工作日志</th>
             </tr>
             </thead>
             <tbody id="logTableBody">
             {% for log in logs %}
                 <tr>
-                    <td>{{ log['uuid'] }}</td>
-                    <td>{{ log['task'] }}</td>
-                    <td>{{ log['solution'] }}</td>
-                    <td>{{ log['effect'] }}</td>
+                    <td>{{ log['user_name'] }}</td>
+                    <td>{{ log['update_datetime'] }}</td>
+                    <td>{{ log['content'] }}</td>
                 </tr>
             {% endfor %}
             </tbody>
@@ -169,6 +204,67 @@
     </div>
 </div>
 <script>
+    {#document.addEventListener("DOMContentLoaded", function () {#}
+    {#    const globalName = localStorage.getItem("global_name");#}
+    {#    const role = localStorage.getItem("role");#}
+    {##}
+    {#    if (!globalName || !role) {#}
+    {#        alert("请先登录！");#}
+    {#        window.location.href = "/"; // 重定向到登录界面#}
+    {#    } else {#}
+    {#        loadGroups();#}
+    {#        loadLogs();#}
+    {#    }#}
+    {# });#}
+
+    // 加载组选择器选项
+    function loadGroups() {
+        fetch('/groups')
+            .then(response => response.json())
+            .then(groups => {
+                const selector = document.getElementById('groupSelector');
+                groups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.text = group.组名;
+                    selector.appendChild(option);
+                });
+            });
+    }
+
+    // 加载工作日志
+    function loadLogs(group_id = null) {
+        const role = localStorage.getItem("role");
+        const globalName = localStorage.getItem("global_name");
+
+        fetch('/logs', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({group_id: group_id, role: role, user_name: globalName})
+        })
+            .then(response => response.json())
+            .then(logs => {
+                const tableBody = document.getElementById('logTableBody');
+                tableBody.innerHTML = ''; // 清空当前表内容
+                logs.forEach(log => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${log.姓名}</td><td>${log.时间}</td><td>${log.工作日志}</td>`;
+                    tableBody.appendChild(row);
+                });
+            });
+    }
+
+    // 根据选择的组筛选日志
+    function filterByGroup() {
+        const selectedGroup = document.getElementById('groupSelector').value;
+        if (selectedGroup === "all") {
+            loadLogs(); // 显示全部
+        } else {
+            loadLogs(selectedGroup); // 根据选择的组显示日志
+        }
+    }
+
+    // 搜索日志
     function searchLogs() {
         const input = document.getElementById('kw').value.toLowerCase();
         const table = document.getElementById('logTableBody');
@@ -189,6 +285,7 @@
             searchLogs();
         }
     });
+
 </script>
 </body>
 </html>

@@ -3,36 +3,356 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Sapper Workspace</title>
-    <link rel="stylesheet" href="../static/css/login.css">
+    <title>Login</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="../static/js/login.js"></script>
+    <style>
+        #signin-username::placeholder {
+            color: #4285f4; /* 账号占位符的颜色 */
+            font-size: 15px;
+        }
+
+        #signin-password::placeholder {
+            color: #4285f4; /* 密码占位符的颜色 */
+            font-size: 15px;
+        }
+
+        #signup-password::placeholder {
+            color: #4285f4; /* 密码占位符的颜色 */
+            font-size: 15px;
+        }
+
+        #signup-username::placeholder {
+            color: #4285f4; /* 密码占位符的颜色 */
+            font-size: 15px;
+        }
+
+        #signup-repeat-password::placeholder {
+            color: #4285f4; /* 密码占位符的颜色 */
+            font-size: 15px;
+        }
+
+        html {
+            background: lightskyblue;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: #4285f4;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .back-button:hover {
+            color: #3367d6; /* 悬停时颜色变深 */
+        }
+
+        .back-button svg {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+        }
+
+
+        .container {
+            margin: auto;
+            width: 650px;
+            height: 550px;
+            /* 相对定位 */
+            position: relative;
+        }
+
+        .welcome {
+            background: #f6f6f6;
+            width: 650px;
+            height: 415px;
+            /* 绝对定位 */
+            position: absolute;
+            top: 25%;
+            border-radius: 5px;
+            box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .pinkbox {
+            position: absolute;
+            top: -10%;
+            left: 5%;
+            background: #4285f4;
+            width: 320px;
+
+            height: 500px;
+            border-radius: 5px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            /* 稍微的慢0.5秒展示 */
+            transition: all 0.5s ease-in-out;
+            z-index: 2;
+        }
+
+        .nodisplay {
+            display: none;
+            transition: all 0.5s ease;
+        }
+
+        .leftbox, .rightbox {
+            position: absolute;
+            width: 50%;
+            transition: all 0.5s ease;
+        }
+
+        .leftbox {
+            left: -2%;
+        }
+
+        .rightbox {
+            right: -2%;
+        }
+
+        h1 {
+            font-family: "Open Sans", sans-serif;
+            text-align: center;
+            margin-top: 95px;
+            color: #f6f6f6;
+            font-size: 2em;
+            letter-spacing: 8px;
+        }
+
+        .title {
+            font-family: "Lora", serif;
+            color: #8E9AAF;
+            font-size: 1.8em;
+            line-height: 1.1em;
+            letter-spacing: 3px;
+            text-align: center;
+            font-weight: 300;
+            margin-top: 20%;
+        }
+
+        .desc {
+            margin-top: -8px;
+        }
+
+        .account {
+            margin-top: 45%;
+            font-size: 10px;
+        }
+
+        p {
+            font-family: "Open Sans", sans-serif;
+            font-size: 0.7em;
+            letter-spacing: 2px;
+            color: #8E9AAF;
+            text-align: center;
+        }
+
+        span {
+            color: #509fae;
+        }
+
+        .flower {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            top: 46%;
+            left: 29%;
+            opacity: 0.7;
+        }
+
+
+        .smaller {
+            width: 90px;
+            height: 100px;
+            top: 48%;
+            left: 38%;
+            opacity: 0.9;
+        }
+
+        .button {
+            padding: 12px;
+            font-family: "Open Sans", sans-serif;
+            letter-spacing: 3px;
+            font-size: 11px;
+            border-radius: 10px;
+            margin: auto;
+            outline: none;
+            display: block;
+        }
+
+        .button:hover {
+            background: #4285f4;
+            color: #f6f6f6;
+            transition: background-color 0.5s ease-out;
+        }
+
+        .button {
+            margin-top: 3%;
+            background: #f6f6f6;
+            color: lightblue;
+            border: solid 1px lightblue;
+        }
+
+        form {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            padding-top: 7px;
+        }
+
+        .more-padding {
+            padding-top: 35px;
+        }
+
+        .more-padding input {
+            padding: 12px;
+        }
+
+        .more-padding .submit {
+            margin-top: 45px;
+        }
+
+        .submit {
+            margin-top: 25px;
+            padding: 12px;
+            border-color: #4285f4;
+        }
+
+        .submit:hover {
+            background: lightgray;
+            border-color: lightblue;
+        }
+
+        input {
+            background: white;
+            width: 65%;
+            color: #4285f4;
+            border: none;
+            border-bottom: 1px solid rgba(246, 246, 246, 0.5);
+            padding: 9px;
+            margin: 7px;
+        }
+
+        input::placeholder {
+            color: #f6f6f6;
+            letter-spacing: 2px;
+            font-size: 1.3em;
+            font-weight: 100;
+        }
+
+        input:focus {
+            color: #4285f4;
+            outline: none;
+            border-bottom: 1.2px solid lightblue;
+            font-size: 1em;
+            transition: 0.8s all ease;
+
+        }
+
+        input:focus::placeholder {
+            opacity: 0;
+        }
+
+        label {
+            font-family: "Open Sans", sans-serif;
+            color: #4285f4;
+            font-size: 0.8em;
+            letter-spacing: 1px;
+        }
+
+        .checkbox {
+            display: inline;
+            white-space: nowrap;
+            position: relative;
+            left: -62px;
+            top: 5px;
+        }
+
+        input[type=checkbox] {
+            width: 20px;
+            background: #4285f4;
+        }
+
+        input[type=checkbox]:checked + label {
+            color: #4285f4;
+            transition: 0.5s all ease;
+        }
+
+        .role-button.selected {
+            border: 2px solid #4285f4;
+            border-radius: 5px;
+        }
+
+        .role-button {
+            transition: background-color 0.3s ease, border 0.3s ease, color 0.3s ease;
+        }
+
+        .role-button.selected {
+            border: 2px solid #4285f4;
+            background-color: #4285f4;
+            color: white;
+        }
+
+        .role-button.selected:hover {
+            background-color: #3367d6; /* 蓝色加深 */
+        }
+
+        .role-button:not(.selected) {
+            background-color: #f1f1f1;
+            color: #4285f4;
+        }
+
+        .role-button:not(.selected):hover {
+            background-color: #e0e0e0; /* 浅灰色 */
+        }
+    </style>
+
 </head>
 <body>
-<div id="root" style="width:100%">
+<a href="/" class="back-button">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round"/>
+    </svg>
+    返回
+</a>
+<div id="root" style="width:100%" style="position:fixed;width:100px">
     <div class="container">
         <div class="welcome">
             <div class="pinkbox">
                 <div class="signup nodisplay">
                     <h1>注册</h1>
                     <form id="signup-form" autocomplete="off">
-                        <input type="text" id="signup-username" placeholder="账号">
-                        <input type="email" id="signup-email" placeholder="邮箱">
-                        <input type="password" id="signup-password" placeholder="密码">
-                        <input type="password" id="signup-repeat-password" placeholder="重复密码">
-                        <button type="button" class="button submit">创建账号</button>
+                        <input style="border-radius: 5px" type="text" id="signup-username" placeholder="账号">
+                        <input style="border-radius: 5px" type="password" id="signup-password" placeholder="密码">
+                        <input style="border-radius: 5px" type="password" id="signup-repeat-password"
+                               placeholder="重复密码">
+                        <br>
+                        <div id="role-switcher"
+                             style="display: flex; justify-content: center;width:270px;height: 40px; margin-bottom: 10px;border-radius:5px;border:1px solid black">
+                            <button id="user-role" class="role-button"
+                                    style="flex: 1; background-color: #4285f4; color: white; border: none; border-radius: 5px 0 0 5px;">
+                                以普通用户身份注册
+                            </button>
+                            <button id="admin-role" class="role-button"
+                                    style="flex: 1; background-color: #f1f1f1; color: #4285f4; border: none; border-radius: 0 5px 5px 0;">
+                                以管理员身份注册
+                            </button>
+                        </div>
+                        <button type="button" class="button submit" style="color: #4285f4">创建账号</button>
                     </form>
                 </div>
                 <div class="signin">
                     <h1>登录</h1>
                     <form id="signin-form" class="more-padding" autocomplete="off">
-                        <input type="text" id="signin-username" placeholder="账号">
-                        <input type="password" id="signin-password" placeholder="密码">
+                        <input style="border-radius: 5px" type="text" id="signin-username" placeholder="账号">
+                        <input style="border-radius: 5px" type="password" id="signin-password" placeholder="密码">
                         <div class="checkbox">
                             <input type="checkbox" id="remember"/>
-                            <label for="remember">记住我</label>
+                            <label for="remember" style="color:white">记住我</label>
                         </div>
-                        <button type="button" class="button submit">登录</button>
+                        <button type="button" class="button submit" style="color: #4285f4">登录</button>
                     </form>
                 </div>
             </div>
@@ -49,25 +369,142 @@
     <script>
         // 当点击注册的时候
         $('#signup').click(function () {
-            // 平移粉色的盒子，显示注册页面
-            $('.pinkbox').css('transform', 'translateX(80%)');
-            // 隐藏登录表单
-            $('.signin').addClass('nodisplay');
-            // 显示注册表单
-            $('.signup').removeClass('nodisplay');
-        });
+            // 先淡出当前内容
+            $('.signin').fadeOut(300, function () {
+                // 平移粉色的盒子，显示注册页面
+                $('.pinkbox').css('transform', 'translateX(80%)');
 
+                // 在动画结束后执行内容切换
+                setTimeout(function () {
+                    // 隐藏登录表单
+                    $('.signin').addClass('nodisplay');
+                    // 显示注册表单
+                    $('.signup').removeClass('nodisplay').fadeIn(300);  // 淡入新内容
+                }, 500);  // 根据你的动画持续时间调整这个延迟
+            });
+        });
 
         // 当点击登录的时候
         $('#signin').click(function () {
-            // 平移粉色的盒子，显示注册页面
-            $('.pinkbox').css('transform', 'translateX(0%)');
-            // 隐藏注册表单
-            $('.signup').addClass('nodisplay');
-            // 显示登录表单
-            $('.signin').removeClass('nodisplay');
+            // 先淡出当前内容
+            $('.signup').fadeOut(300, function () {
+                // 平移粉色的盒子，显示登录页面
+                $('.pinkbox').css('transform', 'translateX(0%)');
 
+                // 在动画结束后执行内容切换
+                setTimeout(function () {
+                    // 隐藏注册表单
+                    $('.signup').addClass('nodisplay');
+                    // 显示登录表单
+                    $('.signin').removeClass('nodisplay').fadeIn(300);  // 淡入新内容
+                }, 500);  // 根据你的动画持续时间调整这个延迟
+            });
         });
+
+
+        $(document).ready(function () {
+            let role = 'user'; // 默认是普通用户
+            let lastRegisteredUsername = '';
+            let lastRegisteredPassword = '';
+            // 切换用户角色
+            $('#role-switcher .role-button').click(function (event) {
+                event.preventDefault();
+
+                // 移除其他按钮的选中状态
+                $('#role-switcher .role-button').removeClass('selected');
+
+                // 给当前点击的按钮添加选中状态
+                $(this).addClass('selected');
+
+                // 切换背景颜色和角色
+                if ($(this).attr('id') === 'user-role') {
+                    role = 'user';
+                    $('#user-role').css({'background-color': '#4285f4', 'color': 'white'});
+                    $('#admin-role').css({'background-color': '#f1f1f1', 'color': '#4285f4'});
+                } else {
+                    role = 'admin';
+                    $('#admin-role').css({'background-color': '#4285f4', 'color': 'white'});
+                    $('#user-role').css({'background-color': '#f1f1f1', 'color': '#4285f4'});
+                }
+            });
+            // 注册逻辑
+            $('#signup-form').on('click', '.submit', function (event) {
+                event.preventDefault();
+                const username = $('#signup-username').val();
+                const password = $('#signup-password').val();
+                const repeatPassword = $('#signup-repeat-password').val();
+
+                if (!username || !password) {
+                    alert('请输入用户名和密码');
+                    return;
+                }
+
+                if (password !== repeatPassword) {
+                    alert('密码不匹配');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/users/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        name: username,
+                        password: password,
+                        role: role  // 添加角色信息到请求数据中
+                    }),
+                    success: function (response) {
+                        alert('注册成功！请登录。');
+                        // 保存注册的用户名和密码
+                        lastRegisteredUsername = username;
+                        lastRegisteredPassword = password;
+
+                        // 自动填充到登录表单
+                        $('#signin-username').val(lastRegisteredUsername);
+                        $('#signin-password').val(lastRegisteredPassword);
+
+                        $('#signin').click();
+                    },
+                    error: function (error) {
+                        alert('注册失败：' + error.responseJSON.detail);
+                    }
+                });
+            });
+
+            // 登录逻辑
+            $('#signin-form').on('click', '.submit', function (event) {
+                event.preventDefault();
+
+                const username = $('#signin-username').val();
+                const password = $('#signin-password').val();
+
+                if (!username || !password) {
+                    alert('请输入用户名和密码');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/users/login',
+                    type: 'POST',
+                    contentType: "application/x-www-form-urlencoded",
+                    data: new URLSearchParams({username: username, password: password}).toString(),
+                    success: function (response) {
+                        const token = response.token.access_token;
+                        localStorage.setItem('accessToken', token);
+                        localStorage.setItem('role', response.user.role);
+                        console.log(token)
+                        localStorage.setItem('userUuid', response.user.uuid);
+                        alert('登录成功！');
+                        window.location.href = '/';  // 重定向到首页
+                    },
+                    error: function (error) {
+                        const errorMessage = error.responseJSON ? error.responseJSON.detail : '未知错误';
+                        alert('登录失败：' + errorMessage);
+                    }
+                });
+            });
+        });
+
     </script>
 </div>
 </body>

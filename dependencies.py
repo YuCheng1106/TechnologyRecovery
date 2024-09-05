@@ -6,9 +6,19 @@ from fastapi.security import OAuth2PasswordBearer
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db_session)) -> str:
+    # 尝试使用提供的 token 验证并获取用户 UUID
     uuid = await validate_token(db, token)
-    print("uuid:  ", uuid)
+
+    # 打印调试信息
+
+    # 如果未能获取到 UUID，抛出认证异常
     if not uuid:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token. Please log in again."
+        )
+
+    # 返回用户的 UUID
     return uuid

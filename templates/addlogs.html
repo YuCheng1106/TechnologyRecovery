@@ -94,6 +94,11 @@
             text-decoration: none;
             color: #4285f4;
             font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .back-button:hover {
+            color: #3367d6; /* 悬停时颜色变深 */
         }
 
         .back-button svg {
@@ -393,6 +398,11 @@
         <input type="date"
                style="width: 124px;user-select: none;pointer-events: none;border: none;border-radius:0px; border-bottom:1px solid #4285f4; outline: none;font-size: 16px"
                id="datePicker" name="date" value="{{ current_date }}" readonly>
+        <!-- 添加组选择器 -->
+        <label for="groupSelector">选择组:</label>
+        <select id="groupSelector" name="group" style="font-size: 16px">
+            <!-- 这里的选项将通过JS动态填充 -->
+        </select>
     </div>
     <label>工作日志：</label>
     <textarea placeholder="请输入工作日志内容..." class="textareare"></textarea>
@@ -432,6 +442,25 @@
 </div>
 
 <script>
+    // 获取后端传递的群组数据
+    const groups = {{ groups | tojson }};
+    // 获取 select 元素
+    const groupSelector = document.getElementById('groupSelector');
+
+    // 动态填充 select 选项
+    const option = document.createElement('option');
+    option.value = null;  // 选项的 value 设置为群组的 uuid
+    option.textContent = "个人";  // 选项的文本设置为群组的 name
+    groupSelector.appendChild(option);  // 将选项添加到 select 中
+    groups.forEach(group => {
+        group = JSON.parse(group)
+        const option = document.createElement('option');
+        option.value = group.uuid;  // 选项的 value 设置为群组的 uuid
+        option.textContent = group.name;  // 选项的文本设置为群组的 name
+        groupSelector.appendChild(option);  // 将选项添加到 select 中
+    });
+
+
     window.onload = function () {
         var today = new Date();
         var date = today.getFullYear() + '-' + (today.getMonth() + 1).toString().padStart(2, '0') + '-' + today.getDate().toString().padStart(2, '0');
@@ -502,7 +531,11 @@
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`  // 设置 Authorization 头部
                 },
-                body: JSON.stringify({ text: logData })
+                body: JSON.stringify({
+                name: name,  // 单独传递姓名
+                date: date,  // 单独传递时间
+                logData: logData  // 组合好的日志内容
+            })
             });
 
             const responseData = await response.json();
@@ -647,7 +680,10 @@
         // 显示加载动画并隐藏“保存”文字
         saveButton.innerHTML = '<div class="loading"></div>';
 
-        const combinedText = `姓名：${name}\n时间：${date}\n工作日志：${log}`;
+        // 获取当前工作日志标准内容
+        const currentStandard = document.getElementById('m1odalBody').innerText || '当前工作日志标准未定义。';
+
+        const combinedText = `${currentStandard}\n\n姓名：${name}\n时间：${date}\n工作日志：${log}`;
         try {
             const checkedText = await checkText(combinedText);
             console.log(checkedText)
@@ -668,7 +704,6 @@
 
 
     function clearLog() {
-        nameInput.value = '';
         datePicker.value = new Date().toISOString().split('T')[0];
         textArea.value = '';
     }
@@ -691,6 +726,7 @@
             }
         );
     }
+
 
     function showRefuse() {
         return new Promise((resolve) => {

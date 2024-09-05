@@ -6,8 +6,8 @@ from embedding import load_embedding_models, get_sentence_embedding
 config = {
     'host': 'localhost',
     'user': 'root',
-    'password': 'techsearch',
-    'database': 'logdb',
+    'password': 'liweiran',
+    'database': 'technologyrecovery',
     'charset': 'utf8mb4',
     'cursorclass': pymysql.cursors.DictCursor
 }
@@ -22,7 +22,7 @@ async def process_logs():
     try:
         with connection.cursor() as cursor:
             # 查询所有日志数据，包括向量列
-            select_sql = "SELECT id, 工作日志, 向量 FROM logs2"
+            select_sql = "SELECT id, 工作日志, 向量 FROM worklog"
             cursor.execute(select_sql)
             results = cursor.fetchall()
 
@@ -38,20 +38,20 @@ async def process_logs():
                     vector_blob = embedding.tobytes()  # 将向量转换为二进制格式
 
                     # 更新数据库中的向量列
-                    update_sql = "UPDATE logs2 SET 向量 = %s WHERE id = %s"
+                    update_sql = "UPDATE worklog SET 向量 = %s WHERE id = %s"
                     cursor.execute(update_sql, (vector_blob, log_id))
                     print(f"Updated embedding for ID {log_id}")
 
                 elif not work_log and vector_blob:
                     # 如果工作日志为空且向量不为空，输出警告后删除该行
                     print(f"警告: ID 为 {log_id} 的行工作日志数据缺失，请重新填写")
-                    delete_sql = "DELETE FROM logs2 WHERE id = %s"
+                    delete_sql = "DELETE FROM worklog WHERE id = %s"
                     cursor.execute(delete_sql, (log_id,))
                     print(f"Deleted row with ID {log_id} due to missing 工作日志")
 
                 elif not work_log and not vector_blob:
                     # 如果工作日志和向量都为空，删除该行
-                    delete_sql = "DELETE FROM logs2 WHERE id = %s"
+                    delete_sql = "DELETE FROM worklog WHERE id = %s"
                     cursor.execute(delete_sql, (log_id,))
                     print(f"Deleted row with ID {log_id} due to missing both 工作日志 and 向量")
 

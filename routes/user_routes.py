@@ -1,4 +1,3 @@
-# app/api/v1/endpoints/user_routes.py
 from fastapi import APIRouter, Depends, HTTPException, status, Cookie
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,11 +19,6 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db_sessio
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The name is already in use."
-        )
-    if await user_service.get_user_by_email(db, user.email):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The email address is already in use."
         )
     return await user_service.create_user(db, user.model_dump())
 
@@ -51,16 +45,6 @@ async def get_user_by_uuid(user_uuid: str, db: AsyncSession = Depends(get_db_ses
 # Edit user by UUID
 @router.put("/users/by-uuid/{user_uuid}", response_model=UserResponse)
 async def edit_user_by_uuid_endpoint(user_uuid: str, update_data: UserUpdate, db: AsyncSession = Depends(get_db_session), _: None = Depends(get_current_user)):
-    # if await user_service.get_user_by_name(db, update_data.name):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_400_BAD_REQUEST,
-    #         detail="The name is already in use."
-    #     )
-    # if await user_service.get_user_by_email(db, update_data.email):
-    #     raise HTTPException(
-    #         status_code=status.HTTP_400_BAD_REQUEST,
-    #         detail="The email address is already in use."
-    #     )
     user = await user_service.edit_user_by_uuid(db, user_uuid, update_data.model_dump())
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -76,7 +60,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Incorrect name or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     user = await user_service.edit_user_by_id(db, user.id, {"last_login": datetime.utcnow()})

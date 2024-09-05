@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from models.worklog_model import WorkLog
+from models import WorkLog
 from datetime import datetime
 from common import id_generation
 
@@ -61,10 +61,9 @@ async def get_worklog_by_uuid(db: AsyncSession, worklog_uuid: str) -> WorkLog:
     result = await db.execute(select(WorkLog).where(WorkLog.uuid == worklog_uuid))
     return result.scalar_one_or_none()
 
-
 async def get_all_user_worklogs(db: AsyncSession, user_uuid: str) -> list[WorkLog]:
     result = await db.execute(
-        select(WorkLog).where(WorkLog.user_uuid == user_uuid)
+        select(WorkLog).where(WorkLog.user_uuid == user_uuid)  # 确保这里是用户标识符字段
     )
     return result.scalars().all()
 

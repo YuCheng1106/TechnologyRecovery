@@ -2,7 +2,7 @@
 from typing import Union
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from models.user_model import User
+from models import User, Group, UserGroup
 from core.security import hash_password
 from common import filter, id_generation
 from datetime import datetime, timedelta, timezone
@@ -12,11 +12,14 @@ from core.security import verify_password
 
 # Create user
 async def create_user(db: AsyncSession, user_data: dict) -> User:
+    print(user_data)
+
+    role = user_data.pop('role', 'user')
     hashed_password = hash_password(user_data.pop('password'))
     uuid = 'user_{}'.format(id_generation.generate_id())
     while await get_user_by_uuid(db, uuid):
         uuid = 'user_{}'.format(id_generation.generate_id())
-    db_user = User(**user_data, uuid=uuid, hashed_password=hashed_password, active=True)
+    db_user = User(**user_data, uuid=uuid, hashed_password=hashed_password, active=True, role=role)
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
@@ -61,10 +64,6 @@ async def get_user_by_id(db: AsyncSession, user_id: int) -> User:
     result = await db.execute(select(User).where(User.id == user_id))
     return result.scalar_one_or_none()
 
-# Get user by Email
-async def get_user_by_email(db: AsyncSession, email: str) -> User:
-    result = await db.execute(select(User).where(User.email == email))
-    return result.scalar_one_or_none()
 
 # Get user by Name
 async def get_user_by_name(db: AsyncSession, name: str) -> User:
@@ -90,16 +89,20 @@ def create_token(data: dict, expires_delta: timedelta) -> str:
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
+
 def create_access_token(data: dict) -> str:
     return create_token(data, timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
 
+
 def create_refresh_token(data: dict) -> str:
     return create_token(data, timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES))
+
 
 async def validate_token(db: AsyncSession, token: str) -> Union[str, bool]:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         uuid = payload.get("sub")
+        print('uuid', uuid)
         expiry = payload.get("exp")
         if uuid is None or expiry is None or datetime.fromtimestamp(expiry, timezone.utc) < datetime.now(timezone.utc):
             return False

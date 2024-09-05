@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>技术寻人搜索引擎</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -102,26 +103,36 @@
             text-decoration: none;
             font-size: 16px;
             cursor: pointer;
+            user-select: none;
         }
 
         .bottom-button:hover {
             background-color: #2c3e50; /* 深蓝色 */
             color: #bdc3c7; /* 淡灰色 */
         }
+
+        #manageGroupButton {
+            display: none; /* 默认隐藏 */
+        }
+
+
     </style>
 </head>
 <body>
 
 <div class="search-container">
     <h1>技术寻人</h1>
-    <form action="/search">
+
+    <form id="searchForm" action="/search">
         <input type="text" name="q" placeholder="搜索日志...">
-        <input type="submit" value="search">
+        <input type="submit" style="font-size: 14.1px" value="搜索">
     </form>
     <div class="action-buttons">
-        <a href="/login" class="bottom-button"><span>&#43;</span>登录/注册</a>
-        <a href="/addlogs" class="bottom-button"><span>&#43;</span> add logs</a>
-        <a href="/worklogs/show" class="bottom-button"><span>&#128065;</span> show logs</a>
+        <a href="/login" class="bottom-button"><i class="fas fa-user"
+                                                  style="font-size: 12px;margin-right: 2px"></i><span> 登录/注册</span></a>
+        <a href="/worklogs/add" class="bottom-button"><span style="font-size: 17px">&#43;</span> 添加日志</a>
+        <a href="/worklogs/show" class="bottom-button"><span>&#128065;</span> 查看日志</a>
+        <a id="manageGroupButton" herf="/manage_group" class="bottom-button"><span>&#9881;</span> 管理组</a>
     </div>
 
 </div>
@@ -129,6 +140,7 @@
 <canvas id="myCanvas"></canvas> <!-- 将 canvas 放在后面 -->
 
 <script>
+    const authProtectionEnabled = true;
     const canvas = document.getElementById("myCanvas");
     const ctx = canvas.getContext("2d");
     const width = window.innerWidth;
@@ -166,7 +178,7 @@
                 this.y = Math.random() * height;
             }
         }
-    
+
         draw() {
             ctx.beginPath();
             ctx.arc(this.x, this.y, particleSize, 0, Math.PI * 2);
@@ -217,6 +229,7 @@
         requestAnimationFrame(animate);
     }
 
+
     // 监听鼠标移动事件，根据鼠标位置更新粒子运动状态
     document.addEventListener("mousemove", (e) => {
         const mouseX = e.clientX;
@@ -236,9 +249,106 @@
         }
     });
 
+
     // 初始化粒子数组并启动动画
     createParticles();
     animate();
+    $(document).ready(function () {
+        $.ajax({
+            url: "/",
+            type: "GET",
+            success: function (response) {
+                if (!response.logged_in) {
+                    console.log("未登录");
+                    // 未登录状态：显示登录/注册按钮，隐藏其他按钮
+                    $('a[href="/worklogs/add"]').hide();
+                    $('a[href="/worklogs/show"]').hide();
+                    $('#manageGroupButton').hide();
+                } else {
+                    console.log("已登录，用户:", response.user);
+                    // 已登录状态：显示操作按钮，隐藏登录/注册按钮
+                    $('a[href="/login"]').hide();
+                    $('a[href="/worklogs/add"]').show();
+                    $('a[href="/worklogs/show"]').show();
+
+                    // 如果是 admin，则显示管理组按钮
+                    const role = localStorage.getItem("role");
+                    if (role === "admin") {
+                        $('#manageGroupButton').show();
+                    }
+                }
+            },
+            error: function () {
+                console.log("检测登录状态失败");
+            }
+        });
+    });
+
+    document.getElementById("searchForm").addEventListener("submit", function (event) {
+        if (authProtectionEnabled) {
+            event.preventDefault(); // 阻止默认表单提交
+
+            // 假设你用 localStorage 保存了用户名来判断是否登录
+            const token = localStorage.getItem("token");
+            const username = localStorage.getItem("username");
+            if (!username) {
+                alert("未授权，请先登录！");
+                return;
+            }
+
+            const searchInput = document.querySelector('input[name="q"]').value.trim();
+
+            if (searchInput === "") {
+                alert("搜索内容不能为空！");
+                return;
+            }
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const searchParams = new URLSearchParams(formData);
+
+            fetch(form.action + "?" + searchParams.toString(), {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}` + localStorage.getItem("token")  // 在请求头中携带 JWT token
+                }
+            }).then(response => {
+                if (response.status === 401) {
+                    alert("未授权，请先登录！");
+                } else {
+                    window.location.href = response.url;
+                }
+            }).catch(error => {
+                console.error('Error:', error);
+            });
+
+        }
+    });
+    $('a[href="/worklogs/add"]').on("click", function (event) {
+        const role = localStorage.getItem("role");
+        window.location.href = `/worklogs/add?role=${role}`;
+    });
+
+    // 保护 showlogs 按钮
+    $('a[href="/worklogs/show"]').on("click", function (event) {
+        const role = localStorage.getItem("role");
+        console.log(localStorage.getItem("accessToken"))
+        window.location.href = `/worklogs/show?role=${role}`;
+    });
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const role = localStorage.getItem("role");
+        const manageGroupButton = document.getElementById("manageGroupButton");
+
+        if (role === "admin") {
+            manageGroupButton.style.display = "inline-block"; // 显示按钮
+        } else {
+            manageGroupButton.style.display = "none"; // 隐藏按钮
+        }
+    });
+
 </script>
+
 </body>
 </html>
