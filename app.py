@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from routes import user_routes, worklog_routes
+from utils import initialize_model
 load_dotenv()
 
 app = FastAPI()
@@ -32,6 +33,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # 配置模板路径
 templates = Jinja2Templates(directory="templates")
 
+@app.on_event("startup")
+async def startup():
+    """在应用程序启动时加载模型"""
+    await initialize_model()
 
 @app.get("/")
 async def index(request: Request):

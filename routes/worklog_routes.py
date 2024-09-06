@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from services import worklog_service
@@ -12,6 +13,8 @@ from formatter import process_and_store_log
 from fastapi.templating import Jinja2Templates
 from services import usergroup_service
 from sqlalchemy.future import select
+from utils import get_shared_state
+from embedding import get_sentence_embedding
 router = APIRouter()
 
 templates = Jinja2Templates(directory="templates")
@@ -36,21 +39,26 @@ def split_text_by_double_newlines(text):
     return parts
 
 
-def parse_worklog_part(part: str, user_uuid: str) -> dict:
+async def parse_worklog_part(part: str, user_uuid: str) -> dict:
     # 将 part 字符串分割为多行
     lines = part.split('\n')
     worklog_data = {
-        "姓名": user_uuid,
-        "工作日志": None,
-        "effect": None
+        "user_uuid": user_uuid,
+        "content": None,
+        "effect": None,
+        "embedding": None
     }
+
 
     for line in lines:
         if line.startswith("解决问题："):
-            worklog_data["工作日志"] = line.replace("解决问题：", "").strip()
+            worklog_data["content"] = line.split("解决问题：")[1]
         elif line.startswith("解决效果："):
             worklog_data["effect"] = line.replace("解决效果：", "").strip()
 
+    model = get_shared_state()
+    embed = await get_sentence_embedding(lines[0], model['embedding_model'])
+    worklog_data["embedding"] = embed.tobytes()
     return worklog_data
 
 
@@ -64,8 +72,8 @@ async def submit_log(worklog: WorkLogSubmit, db: AsyncSession = Depends(get_db_s
         max_retries = 2
 
         # 解析 part 字符串
-        worklog_data = parse_worklog_part(part, uid)
-
+        worklog_data = await parse_worklog_part(part, uid)
+        worklog_data["group_uuid"] = worklog.group_uuid
         while retries <= max_retries:
             try:
                 await worklog_service.create_worklog(db, worklog_data)
@@ -114,8 +122,18 @@ async def addlogs(request: Request, db: AsyncSession = Depends(get_db_session)):
             result = await db.execute(group_query)
             group_objects = result.scalars().all()
 
-            # 将每个群组对象转为 GroupResponse
-            groups = [GroupResponse.from_orm(group).json() for group in group_objects]
+            # 将每个群组对象转为 GroupResponse 并处理 datetime 对象
+            groups = []
+            for group in group_objects:
+                group_data = GroupResponse.from_orm(group).dict()
+
+                # 将 datetime 转换为 ISO 格式的字符串
+                if isinstance(group_data.get('create_datetime'), datetime):
+                    group_data['create_datetime'] = group_data['create_datetime'].isoformat()
+                if isinstance(group_data.get('update_datetime'), datetime):
+                    group_data['update_datetime'] = group_data['update_datetime'].isoformat()
+
+                groups.append(group_data)
 
         # 返回模板响应
         return templates.TemplateResponse('addlogs.html', {"request": request, "username": user.name, "groups": groups})
@@ -147,6 +165,29 @@ async def show_worklogs(request: Request, db: AsyncSession = Depends(get_db_sess
         if not user_uuid:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
+        usergroups = await usergroup_service.get_all_groups_for_user(db, user_uuid)
+
+        # 优化获取群组信息
+        group_uuids = [usergroup.group_uuid for usergroup in usergroups]
+        groups = []
+        if group_uuids:
+            group_query = select(Group).where(Group.uuid.in_(group_uuids))
+            result = await db.execute(group_query)
+            group_objects = result.scalars().all()
+
+            # 将每个群组对象转为 GroupResponse 并处理 datetime 对象
+            groups = []
+            for group in group_objects:
+                group_data = GroupResponse.from_orm(group).dict()
+
+                # 将 datetime 转换为 ISO 格式的字符串
+                if isinstance(group_data.get('create_datetime'), datetime):
+                    group_data['create_datetime'] = group_data['create_datetime'].isoformat()
+                if isinstance(group_data.get('update_datetime'), datetime):
+                    group_data['update_datetime'] = group_data['update_datetime'].isoformat()
+
+                groups.append(group_data)
+
         # 获取当前用户的所有工作日志
         results = await worklog_service.get_all_user_worklogs(db, user_uuid)
         if not results:
@@ -161,9 +202,13 @@ async def show_worklogs(request: Request, db: AsyncSession = Depends(get_db_sess
                 log_data['user_name'] = user.name
             else:
                 log_data['user_name'] = "Unknown User"  # 如果用户不存在，使用默认值
+            if isinstance(log_data.get('create_datetime'), datetime):
+                log_data['create_datetime'] = log_data['create_datetime'].isoformat()
+            if isinstance(log_data.get('update_datetime'), datetime):
+                log_data['update_datetime'] = log_data['update_datetime'].isoformat()
             logs.append(log_data)
 
-        return templates.TemplateResponse('showlogs.html', {"request": request, "logs": logs})
+        return templates.TemplateResponse('showlogs.html', {"request": request, "logs": logs, "groups": groups})
 
     except HTTPException as http_exc:
         raise http_exc  # 重新抛出已知 HTTP 异常

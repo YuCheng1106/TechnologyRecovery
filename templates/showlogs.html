@@ -192,94 +192,69 @@
             </tr>
             </thead>
             <tbody id="logTableBody">
-            {% for log in logs %}
-                <tr>
-                    <td>{{ log['user_name'] }}</td>
-                    <td>{{ log['update_datetime'] }}</td>
-                    <td>{{ log['content'] }}</td>
-                </tr>
-            {% endfor %}
+            <!-- 动态渲染日志 -->
             </tbody>
         </table>
     </div>
 </div>
 <script>
-    {#document.addEventListener("DOMContentLoaded", function () {#}
-    {#    const globalName = localStorage.getItem("global_name");#}
-    {#    const role = localStorage.getItem("role");#}
-    {##}
-    {#    if (!globalName || !role) {#}
-    {#        alert("请先登录！");#}
-    {#        window.location.href = "/"; // 重定向到登录界面#}
-    {#    } else {#}
-    {#        loadGroups();#}
-    {#        loadLogs();#}
-    {#    }#}
-    {# });#}
+    const groups = {{ groups | tojson }};
+    const logs = {{ logs | tojson }};
+    const groupSelector = document.getElementById('groupSelector');
+    const logTableBody = document.getElementById('logTableBody');
 
-    // 加载组选择器选项
-    function loadGroups() {
-        fetch('/groups')
-            .then(response => response.json())
-            .then(groups => {
-                const selector = document.getElementById('groupSelector');
-                groups.forEach(group => {
-                    const option = document.createElement('option');
-                    option.value = group.id;
-                    option.text = group.组名;
-                    selector.appendChild(option);
-                });
-            });
+    // 动态填充 select 选项
+    const defaultOption = document.createElement('option');
+    defaultOption.value = "";  // 选项的 value 设置为空，表示个人日志
+    defaultOption.textContent = "个人";  // 选项的文本设置为 "个人"
+    groupSelector.appendChild(defaultOption);
+
+    // 渲染组选项
+    groups.forEach(group => {
+        const option = document.createElement('option');
+        option.value = group.uuid;  // 选项的 value 设置为群组的 uuid
+        option.textContent = group.name;  // 选项的文本设置为群组的 name
+        groupSelector.appendChild(option);  // 将选项添加到 select 中
+    });
+
+    // 根据日志数据渲染表格内容
+    function renderLogs(filteredLogs) {
+        logTableBody.innerHTML = "";  // 清空表格
+        filteredLogs.forEach(log => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${log.user_name}</td>
+                <td>${new Date(log.update_datetime).toLocaleString()}</td>
+                <td>${log.content}</td>
+            `;
+            logTableBody.appendChild(row);
+        });
     }
 
-    // 加载工作日志
-    function loadLogs(group_id = null) {
-        const role = localStorage.getItem("role");
-        const globalName = localStorage.getItem("global_name");
-
-        fetch('/logs', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({group_id: group_id, role: role, user_name: globalName})
-        })
-            .then(response => response.json())
-            .then(logs => {
-                const tableBody = document.getElementById('logTableBody');
-                tableBody.innerHTML = ''; // 清空当前表内容
-                logs.forEach(log => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `<td>${log.姓名}</td><td>${log.时间}</td><td>${log.工作日志}</td>`;
-                    tableBody.appendChild(row);
-                });
-            });
-    }
+    // 初始渲染全部日志
+    renderLogs(logs);
 
     // 根据选择的组筛选日志
     function filterByGroup() {
-        const selectedGroup = document.getElementById('groupSelector').value;
-        if (selectedGroup === "all") {
-            loadLogs(); // 显示全部
-        } else {
-            loadLogs(selectedGroup); // 根据选择的组显示日志
+        const selectedGroupUuid = groupSelector.value;
+        let filteredLogs = logs;
+        console.log(selectedGroupUuid, filteredLogs)
+        if (selectedGroupUuid !== "all") {
+            filteredLogs = logs.filter(log => log.group_uuid === selectedGroupUuid);
         }
+        renderLogs(filteredLogs);
     }
 
     // 搜索日志
     function searchLogs() {
         const input = document.getElementById('kw').value.toLowerCase();
-        const table = document.getElementById('logTableBody');
-        const rows = table.getElementsByTagName('tr');
-
-        for (let i = 0; i < rows.length; i++) {
-            const logText = rows[i].getElementsByTagName('td')[1].textContent.toLowerCase();
-            if (logText.includes(input)) {
-                rows[i].style.display = ''; // 显示匹配行
-            } else {
-                rows[i].style.display = 'none'; // 隐藏不匹配行
-            }
-        }
+        const filteredLogs = logs.filter(log => {
+            return log.content.toLowerCase().includes(input) || log.user_name.toLowerCase().includes(input);
+        });
+        renderLogs(filteredLogs);
     }
 
+    // 允许通过按下 Enter 键触发搜索功能
     document.getElementById('kw').addEventListener('keypress', function (event) {
         if (event.key === 'Enter') {
             searchLogs();

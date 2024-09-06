@@ -3,9 +3,11 @@ import torch
 from transformers import BertModel, BertTokenizer, BertConfig
 import asyncio
 
+
 async def load_file_async(path):
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, torch.load, path, torch.device('cpu'))
+
 
 async def load_embedding_models():
     """加载BERT模型和分词器"""
@@ -32,8 +34,8 @@ async def load_embedding_models():
 
     return {"model": model, "tokenizer": tokenizer}
 
+
 async def get_sentence_embedding(text, emb_model):
-    """获取句子的BERT嵌入"""
     inputs = emb_model["tokenizer"](text, return_tensors='pt')
     with torch.no_grad():
         outputs = emb_model["model"](**inputs)

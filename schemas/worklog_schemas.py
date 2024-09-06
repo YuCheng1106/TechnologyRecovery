@@ -4,11 +4,13 @@ from datetime import datetime
 
 
 class WorkLogSubmit(BaseModel):
+    group_uuid: Optional[str] = None
     text: str
 
 
 class WorkLogCreate(BaseModel):
     user_uuid: str
+    group_uuid: Optional[str] = None
     content: Optional[str] = None
     embedding: Optional[bytes] = None
     active: Optional[bool] = None
@@ -25,8 +27,9 @@ class WorkLogResponse(BaseModel):
     id: int
     uuid: str
     user_uuid: str
+    group_uuid: Optional[str] = None
     content: Optional[str] = None
-    embedding: Optional[bytes] = None
+    # embedding: Optional[bytes] = None
     create_datetime: datetime
     update_datetime: datetime
     active: Optional[bool] = True
