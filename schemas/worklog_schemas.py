@@ -37,3 +37,18 @@ class WorkLogResponse(BaseModel):
     class Config:
         orm_mode = True
         from_attributes = True
+
+# class WorkLogResponse(BaseModel):
+#     id: int
+#     uuid: str
+#     user_uuid: str
+#     group_uuid: Optional[str] = None
+#     content: Optional[str] = None
+#     # embedding: Optional[bytes] = None
+#     create_datetime: datetime
+#     update_datetime: datetime
+#     active: Optional[bool] = True
+#
+#     class Config:
+#         orm_mode = True
+#         from_attributes = True

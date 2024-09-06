@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>搜索结果</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         html, body {
             height: 100%;
@@ -170,18 +171,8 @@
 <div class="main-container">
     <div class="left-container">
         <h1>搜索 "{{ query }}" 的结果</h1>
-        <div>
-            {% if results %}
-            <ul>
-                {% for result in results %}
-                <li class="result-item">
-                    <p>{{ result|safe }}</p> <!-- 使用 safe 过滤器来渲染HTML -->
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p>未找到结果。</p>
-            {% endif %}
+        <div id="results-container">
+            <!-- 动态渲染搜索结果 -->
         </div>
     </div>
     <div class="right-container">
@@ -194,36 +185,16 @@
     </div>
 </div>
 <script>
+    const logs = {{ logs | tojson }};
+    console.log(logs)
+    const query = "{{ query }}";
     let loadingInterval;
+
     $(document).ready(function() {
-    const globalName = localStorage.getItem("global_name");
-    const role = localStorage.getItem("role");
+        renderResults(logs); // 初次渲染日志
+    });
 
-    if (!globalName || !role) {
-        alert("请先登录！");
-        window.location.href = "/"; // 重定向到登录界面
-    } else {
-        // 如果存在 global_name 和 role，执行页面的其他逻辑
-    }
-});
-    $.ajax({
-    url: "/your-endpoint",
-    method: "POST",
-    data: {
-        global_name: localStorage.getItem("global_name"),
-        role: localStorage.getItem("role"),
-        // 其他数据
-    },
-    success: function(response) {
-        // 处理成功响应
-    },
-    error: function(xhr, status, error) {
-        // 处理错误响应
-    }
-});
-
-    document.addEventListener('DOMContentLoaded', (event) => {
-        const query = "{{ query }}";
+    document.addEventListener('DOMContentLoaded', () => {
         if (query) {
             const input = document.getElementById('chat-input');
             input.value = query;
@@ -239,6 +210,24 @@
         });
     });
 
+    function renderResults(logs) {
+        const resultsContainer = document.getElementById('results-container');
+        resultsContainer.innerHTML = ''; // 清空容器
+
+        if (logs.length > 0) {
+            const ul = document.createElement('ul');
+            logs.forEach(log => {
+                const li = document.createElement('li');
+                li.classList.add('result-item');
+                li.innerHTML = `<p>${log.content}</p>`; // 动态渲染日志内容
+                ul.appendChild(li);
+            });
+            resultsContainer.appendChild(ul);
+        } else {
+            resultsContainer.innerHTML = '<p>未找到结果。</p>';
+        }
+    }
+
     async function sendMessage() {
         const input = document.getElementById('chat-input');
         const message = input.value.trim();
@@ -249,7 +238,7 @@
         input.style.height = '40px'; // 重置高度
 
         // 获取页面上的前3个工作日志内容
-        const logs = Array.from(document.querySelectorAll('.result-item p')).slice(0, 3).map(p => p.innerText);
+        const topLogs = [...logs];
 
         // 添加“正在思考...”消息
         const loadingMessage = addMessage('bot', '正在思考');
@@ -262,7 +251,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({question: message, top_logs: logs}), // 发送问题和前三个日志
+                body: JSON.stringify({question: message, top_logs: topLogs}), // 发送问题和前三个日志
             });
             const data = await response.json();
             if (data.answer) {

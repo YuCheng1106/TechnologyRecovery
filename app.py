@@ -49,32 +49,6 @@ async def login(request: Request):
     return templates.TemplateResponse('login.html', {"request": request})
 
 
-# @app.get('/search')
-# async def search_query(request: Request, user: User = Depends(get_current_user)):
-#     """使用 query_embedding 函数处理搜索查询。"""
-#     query = request.query_params.get('q')
-#     if not query:
-#         raise HTTPException(status_code=400, detail="搜索内容不能为空")
-#     else:
-#         results = await query_embedding(query)
-#
-#         # 处理结果，将空格替换为换行符，并为关键词添加样式
-#         formatted_results = []
-#         for result, similarity in results:
-#             for keyword in ["时间：", "解决问题：", "解决方法：", "解决效果："]:
-#                 result = result.replace(keyword, f'<br>{keyword}')
-#             formatted_result = result.replace(" ", "<br>")
-#             formatted_results.append((formatted_result, similarity))
-#
-#         # 按相似度排序并提取前3个工作日志内容
-#         top_logs = [res[0] for res in sorted(formatted_results, key=lambda x: x[1], reverse=True)[:3]]
-#
-#         print(f"Query: {query}, Results: {top_logs}")
-#
-#     return templates.TemplateResponse('results.html', {"request": request, "query": query,
-#                                                        "results": [r[0] for r in formatted_results]})
-
-
 def check(text: str):
     url = 'https://api.coze.cn/open_api/v2/chat'
     headers = {
@@ -132,7 +106,7 @@ async def api_ask(request: Request):
 
     top_logs = data.get('top_logs', [])
     background_text = "请以" + "、".join(
-        [f"文本{i + 1}：" + log for i, log in enumerate(top_logs)]) + "为背景，回答“" + text + "”"
+        [f"文本{i + 1}：" + log['content'] for i, log in enumerate(top_logs)]) + "为背景，回答“" + text + "”"
 
     url = 'https://api.coze.cn/open_api/v2/chat'
     headers = {
