@@ -20,6 +20,7 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(BaseModel):
+    id: int
     uuid: str
     name: Optional[str] = None
     role: Optional[str] = None

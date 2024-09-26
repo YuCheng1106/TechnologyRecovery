@@ -32,13 +32,13 @@ async def load_embedding_models():
     # 加载分词器
     tokenizer = BertTokenizer(vocab_file=vocab_path)
 
-    return {"model": model, "tokenizer": tokenizer}
+    return {"embed_model": model, "tokenizer": tokenizer}
 
 
 async def get_sentence_embedding(text, emb_model):
     inputs = emb_model["tokenizer"](text, return_tensors='pt')
     with torch.no_grad():
-        outputs = emb_model["model"](**inputs)
+        outputs = emb_model["embed_model"](**inputs)
     # 获取 [CLS] token 的向量
     cls_embedding = outputs.last_hidden_state[:, 0, :].numpy()
     return cls_embedding

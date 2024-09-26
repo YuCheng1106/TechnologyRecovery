@@ -3,14 +3,18 @@ import json
 import time
 from dependencies import get_current_user
 import requests
+from fastapi import FastAPI, Request, Depends, HTTPException
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from routes import user_routes, worklog_routes
+from routes import user_routes, worklog_routes, group_routes
 from utils import initialize_model
+from services import user_service
+from dependencies import get_db_session
+from sqlalchemy.ext.asyncio import AsyncSession
 load_dotenv()
 
 app = FastAPI()
@@ -28,6 +32,8 @@ router = APIRouter()
 app.include_router(user_routes.router, tags=["users"])
 app.include_router(worklog_routes.router, tags=["workLogs"])
 
+app.include_router(group_routes.router, tags=["groups"])
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 配置模板路径
@@ -39,9 +45,36 @@ async def startup():
     await initialize_model()
 
 @app.get("/")
-async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def index(request: Request, db: AsyncSession = Depends(get_db_session)):
+    is_logged_in = False
+    role = ''
 
+    try:
+        token = request.cookies.get("access_token")
+        if token:
+            try:
+                token = token.split(" ")[1]
+            except IndexError:
+                raise HTTPException(status_code=400, detail="Invalid token format")
+
+            user_uuid = await get_current_user(token, db)
+            if user_uuid:
+                user = await user_service.get_user_by_uuid(db, user_uuid)
+                if user:
+                    is_logged_in = True
+                    role = user.role
+
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+    return templates.TemplateResponse('index.html', {"request": request, "is_logged_in": is_logged_in, "role": role})
+
+@app.get("/manage_group")
+async def manage_group(request:Request):
+    return templates.TemplateResponse("manageGroup.html",{"request":request})
 
 @app.get('/login')
 async def login(request: Request):
@@ -60,7 +93,7 @@ def check(text: str):
     }
 
     data = {
-        "conversation_id": "1234",
+        "conversation_id": "12345",
         "bot_id": "7410333069560905743",
         # "bot_id": "7400423003794227254",
         "user": "29032201862555",

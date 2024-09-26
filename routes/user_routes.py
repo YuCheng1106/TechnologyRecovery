@@ -53,8 +53,7 @@ async def edit_user_by_uuid_endpoint(user_uuid: str, update_data: UserUpdate, db
 
 # Login
 @router.post("/users/login", response_model=UserWithToken)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),
-                                 db: AsyncSession = Depends(get_db_session)):
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),db: AsyncSession = Depends(get_db_session)):
     # Authenticate user
     user = await user_service.authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -87,3 +86,4 @@ async def refresh_access_token(refresh_token: Optional[str] = Cookie(None), db: 
         )
     access_token = user_service.create_access_token(data={"sub": uuid})
     return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+

@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class WorkLogSubmit(BaseModel):
-    group_uuid: Optional[str] = None
+    group_uuid: str
     text: str
 
 
@@ -29,6 +29,7 @@ class WorkLogResponse(BaseModel):
     user_uuid: str
     group_uuid: Optional[str] = None
     content: Optional[str] = None
+    effect: Optional[str] = None
     # embedding: Optional[bytes] = None
     create_datetime: datetime
     update_datetime: datetime

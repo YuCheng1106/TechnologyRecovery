@@ -75,6 +75,12 @@ async def get_user_by_uuid(db: AsyncSession, uuid: str) -> User:
     result = await db.execute(select(User).where(User.uuid == uuid))
     return result.scalar_one_or_none()
 
+async def get_users_by_role(db: AsyncSession, role: str):
+    result = await db.execute(select(User).where(User.role == role))
+    return result.scalars().all()
+
+
+
 # Authenticate user
 async def authenticate_user(db: AsyncSession, email: str, password: str):
     user = await get_user_by_name(db, email)

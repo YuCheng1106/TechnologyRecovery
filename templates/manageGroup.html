@@ -40,7 +40,7 @@
         .group-selector {
             margin-bottom: 10px;
             height: 30px;
-            width: 100px;
+            width: 80px;
         }
 
         .roles-table {
@@ -187,6 +187,11 @@
             background-color: #357ae8;
         }
 
+        #admins p, #userss p {
+            margin-right: 10px; /* 控制每个 UUID 之间的水平间隙 */
+            margin-bottom: 10px; /* 控制每行 UUID 之间的垂直间隙 */
+        }
+
 
     </style>
 </head>
@@ -194,7 +199,8 @@
 
 <a href="/" class="back-button">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round"/>
     </svg>
     返回
 </a>
@@ -211,24 +217,28 @@
 </div>
 <div class="container">
     <div style="display:flex; justify-content: space-between; align-items: center;">
-    <div>
-        <span style="font-size: 20px">选择组 :</span>
-        <select id="group-selector" class="group-selector"></select>
+        <div>
+            <span style="font-size: 20px">选择组 :</span>
+            <select id="group-selector" class="group-selector" style="text-align: center;"></select>
+        </div>
+        <button class="create-group-button" onclick="openCreateGroupModal()">创建组</button>
     </div>
-    <button class="create-group-button" onclick="openCreateGroupModal()">创建组</button>
-</div>
 
 
     <div class="roles-table">
         <div class="role-list" id="admin-group">
             <h3>管理员组</h3>
+            <div id="admins" style="display: flex"></div>
             <!-- 管理员组成员将通过 JavaScript 动态填充 -->
-            <button class="add-button" onclick="openModal('admin')">+</button>
+            <button class="add-button" style="transform: translateX(-40px);" onclick="openModal('admin')">+</button>
+            <button class="add-button" onclick="openRemoveModal('admin')">-</button>
         </div>
         <div class="role-list" id="user-group">
             <h3>用户组</h3>
+            <div id="userss" style="display: flex"></div>
             <!-- 用户组成员将通过 JavaScript 动态填充 -->
-            <button class="add-button" onclick="openModal('user')">+</button>
+            <button class="add-button" style="transform: translateX(-40px);" onclick="openModal('user')">+</button>
+            <button class="add-button" onclick="openRemoveModal('user')">-</button>
         </div>
 
     </div>
@@ -250,58 +260,58 @@
 </div>
 
 <script>
-    $(document).ready(function () {
-        const globalName = localStorage.getItem("global_name");
-        const role = localStorage.getItem("role");
 
-        if (!globalName || !role) {
-            alert("请先登录！");
-            window.location.href = "/"; // 重定向到登录界面
-        } else {
-            // 如果存在 global_name 和 role，执行页面的其他逻辑
-        }
-    });
-    $.ajax({
-        url: "/your-endpoint",
-        method: "POST",
-        data: {
-            global_name: localStorage.getItem("global_name"),
-            role: localStorage.getItem("role"),
-            // 其他数据
-        },
-        success: function (response) {
-            // 处理成功响应
-        },
-        error: function (xhr, status, error) {
-            // 处理错误响应
-        }
-    });
     document.addEventListener("DOMContentLoaded", function () {
         fetch('/api/groups')
             .then(response => response.json())
             .then(data => {
                 const groupSelector = document.getElementById('group-selector');
-                data.groups.forEach(group => {
+                groupSelector.innerHTML = '';
+
+                if (data.groups.length === 0) {
                     const option = document.createElement('option');
-                    option.value = group.id;
-                    option.textContent = group.name;
+                    option.value = '';
+                    option.textContent = '无';
                     groupSelector.appendChild(option);
-                });
+                } else {
+                    data.groups.forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group.id;
+                        option.textContent = group.name;
+                        groupSelector.appendChild(option);
+                    });
 
-                groupSelector.addEventListener('change', function () {
-                    const groupId = this.value;
-                    fetch(`/api/groups/${groupId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            document.getElementById('admin-group').innerHTML = data.admins.map(admin => `<p>${admin.name}</p>`).join('');
-                            document.getElementById('user-group').innerHTML = data.users.map(user => `<p>${user.name}</p>`).join('');
-                            document.getElementById('worklog-standard').value = data.worklog_standard;
-                        });
-                });
+                    groupSelector.addEventListener('change', function () {
+                        const groupId = this.value;
+                        fetch(`/api/groups/${groupId}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Group details data:', data);
+                                document.getElementById('worklog-standard').value = data.worklog_standard;
 
-                groupSelector.dispatchEvent(new Event('change')); // 触发一次默认加载第一个组的信息
+                                // 获取用户名称并更新
+                                Promise.all([
+                                    ...data.admin_users.map(uuid => fetch(`/api/users/${uuid}`).then(response => response.json())),
+                                    ...data.user_users.map(uuid => fetch(`/api/users/${uuid}`).then(response => response.json()))
+                                ]).then(users => {
+                                    const adminNames = users.slice(0, data.admin_users.length).map(user => user.name);
+                                    const userNames = users.slice(data.admin_users.length).map(user => user.name);
+
+                                    const adminContainer = document.getElementById('admins');
+                                    const userContainer = document.getElementById('userss');
+
+                                    adminContainer.innerHTML = adminNames.length ? adminNames.map(name => `<p>${name}</p>`).join('') : '<p>无</p>';
+                                    userContainer.innerHTML = userNames.length ? userNames.map(name => `<p>${name}</p>`).join('') : '<p>无</p>';
+                                });
+                            });
+                    });
+
+
+                    groupSelector.dispatchEvent(new Event('change')); // 触发一次默认加载第一个组的信息
+                }
             });
     });
+
 
     function saveWorklogStandard() {
         const groupId = document.getElementById('group-selector').value;
@@ -328,6 +338,7 @@
         const modalTitle = document.getElementById('modal-title');
         const modalList = document.getElementById('modal-list');
 
+        modal.dataset.action = 'add';
         modalTitle.textContent = role === 'admin' ? '选择管理员' : '选择用户';
         modal.style.display = 'flex';
 
@@ -346,6 +357,46 @@
         modal.dataset.role = role;
     }
 
+    function openRemoveModal(role) {
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalList = document.getElementById('modal-list');
+
+        modal.dataset.action = 'remove';
+        modalTitle.textContent = role === 'admin' ? '移除管理员' : '移除用户';
+        modal.style.display = 'flex';
+
+        const groupId = document.getElementById('group-selector').value;
+
+        fetch(`/api/groups/${groupId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('无法获取组信息');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const currentMembers = data[`${role}_users`] || []; // 假设返回的数据中包含对应角色的用户列表
+
+                // 获取用户名称并显示
+                Promise.all(currentMembers.map(user_uuid => fetch(`/api/users/uuid/${user_uuid}`).then(response => response.json())))
+                    .then(users => {
+                        modalList.innerHTML = '';
+                        users.forEach(user => {
+                            const div = document.createElement('div');
+                            div.innerHTML = `<input type="checkbox" value="${user.id}">${user.name}`;
+                            modalList.appendChild(div);
+                        });
+                    });
+            })
+            .catch(error => {
+                alert(`加载成员时发生错误: ${error.message}`);
+            });
+
+        modal.dataset.role = role;
+    }
+
+
     function closeModal() {
         const modal = document.getElementById('modal');
         modal.style.display = 'none';
@@ -353,12 +404,70 @@
 
     function confirmSelection() {
         const modal = document.getElementById('modal');
+        const action = modal.dataset.action; // 获取操作类型
+        const role = modal.dataset.role;
+        const selectedUserIds = Array.from(document.querySelectorAll('#modal-list input:checked')).map(input => {
+            console.log(input.value + "啊米诺斯"); // 打印每个选中的 ID
+            return input.value;
+        });
+        const groupId = document.getElementById('group-selector').value;
+
+        if (action === 'add') {
+            fetch(`/api/groups/${groupId}/add-users`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    role: role,
+                    user_ids: selectedUserIds
+                })
+            }).then(response => {
+                if (response.ok) {
+                    // 刷新组成员列表
+                    document.getElementById('group-selector').dispatchEvent(new Event('change'));
+                    closeModal();
+                } else {
+                    alert('添加成员失败');
+                }
+            });
+        } else if (action === 'remove') {
+            console.log(selectedUserIds);
+            fetch(`/api/groups/${groupId}/remove-users`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    role: role,
+                    user_ids: selectedUserIds
+                })
+            }).then(response => {
+                if (response.ok) {
+                    // 刷新组成员列表
+                    document.getElementById('group-selector').dispatchEvent(new Event('change'));
+                    closeModal();
+                } else {
+                    return response.json().then(errorData => {
+                        // 显示详细的错误信息
+                        alert(`移除成员失败: ${errorData.detail || '未知错误'}`);
+                    });
+                }
+            }).catch(error => {
+                alert(`移除成员时发生错误: ${error.message}`);
+            });
+        }
+    }
+
+
+    function confirmRemoval() {
+        const modal = document.getElementById('modal');
         const role = modal.dataset.role;
         const selectedUserIds = Array.from(document.querySelectorAll('#modal-list input:checked')).map(input => input.value);
 
         const groupId = document.getElementById('group-selector').value;
 
-        fetch(`/api/groups/${groupId}/add-users`, {
+        fetch(`/api/groups/${groupId}/remove-users`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -373,60 +482,68 @@
                 document.getElementById('group-selector').dispatchEvent(new Event('change'));
                 closeModal();
             } else {
-                alert('添加成员失败');
+                return response.json().then(errorData => {
+                    // 显示详细的错误信息
+                    alert(`移除成员失败: ${errorData.detail || '未知错误'}`);
+                });
             }
+        }).catch(error => {
+            // 处理网络错误或其他异常
+            alert(`移除成员时发生错误: ${error.message}`);
         });
     }
+
+
     function openCreateGroupModal() {
-    const modal = document.getElementById('create-group-modal');
-    modal.style.display = 'flex';
-}
-
-function closeCreateGroupModal() {
-    const modal = document.getElementById('create-group-modal');
-    modal.style.display = 'none';
-}
-
-function confirmCreateGroup() {
-    const newGroupName = document.getElementById('new-group-name').value.trim();
-
-    if (!newGroupName) {
-        alert('组名不能为空');
-        return;
+        const modal = document.getElementById('create-group-modal');
+        modal.style.display = 'flex';
     }
 
-    // 检查组名是否重复
-    const existingGroupNames = Array.from(document.getElementById('group-selector').options).map(option => option.textContent);
-    if (existingGroupNames.includes(newGroupName)) {
-        alert('组名已存在，请修改');
-        return;
+    function closeCreateGroupModal() {
+        const modal = document.getElementById('create-group-modal');
+        modal.style.display = 'none';
     }
 
-    // 创建新组并更新数据库
-    fetch('/api/groups', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({name: newGroupName, worklog_standard: '这是标准'})
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // 更新选择器
-            const groupSelector = document.getElementById('group-selector');
-            const option = document.createElement('option');
-            option.value = data.group_id; // 假设后端返回新创建组的ID
-            option.textContent = newGroupName;
-            groupSelector.appendChild(option);
-            groupSelector.value = data.group_id;
-            alert('组创建成功');
-            closeCreateGroupModal();
-        } else {
-            alert('创建失败');
+    function confirmCreateGroup() {
+        const newGroupName = document.getElementById('new-group-name').value.trim();
+
+        if (!newGroupName) {
+            alert('组名不能为空');
+            return;
         }
-    });
-}
+
+        // 检查组名是否重复
+        const existingGroupNames = Array.from(document.getElementById('group-selector').options).map(option => option.textContent);
+        if (existingGroupNames.includes(newGroupName)) {
+            alert('组名已存在，请修改');
+            return;
+        }
+
+        // 创建新组并更新数据库
+        fetch('/api/groups', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({name: newGroupName, worklog_standard: '这是标准'})
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 更新选择器
+                    const groupSelector = document.getElementById('group-selector');
+                    const option = document.createElement('option');
+                    option.value = data.group_id; // 假设后端返回新创建组的ID
+                    option.textContent = newGroupName;
+                    groupSelector.appendChild(option);
+                    groupSelector.value = data.group_id;
+                    alert('组创建成功');
+                    closeCreateGroupModal();
+                } else {
+                    alert('创建失败');
+                }
+            });
+    }
 </script>
 
 </body>

@@ -211,22 +211,36 @@
     });
 
     function renderResults(logs) {
-        const resultsContainer = document.getElementById('results-container');
-        resultsContainer.innerHTML = ''; // 清空容器
+    const resultsContainer = document.getElementById('results-container');
+    resultsContainer.innerHTML = ''; // 清空容器
 
-        if (logs.length > 0) {
-            const ul = document.createElement('ul');
-            logs.forEach(log => {
-                const li = document.createElement('li');
-                li.classList.add('result-item');
-                li.innerHTML = `<p>${log.content}</p>`; // 动态渲染日志内容
-                ul.appendChild(li);
-            });
-            resultsContainer.appendChild(ul);
-        } else {
-            resultsContainer.innerHTML = '<p>未找到结果。</p>';
-        }
+    if (logs.length > 0) {
+        const ul = document.createElement('ul');
+        logs.forEach(log => {
+            // 格式化日志内容，包括姓名和撰写时间
+            const formattedContent = `
+                <strong>姓名：</strong>${log.user_name}<br/>
+                <strong>撰写时间：</strong>${new Date(log.create_datetime).toLocaleString()}
+                ${log.content
+                    .replace("解决问题：", "<br/><strong>解决问题：</strong>")
+                    .replace("解决方法：", "<br/><strong>解决方法：</strong>")
+                    .replace("解决效果：", "<br/><strong>解决效果：</strong>")}
+            `;
+
+            // 创建列表项
+            const li = document.createElement('li');
+            li.classList.add('result-item');
+            li.innerHTML = `<p>${formattedContent}</p>`; // 动态渲染日志内容
+            ul.appendChild(li);
+        });
+        resultsContainer.appendChild(ul);
+    } else {
+        resultsContainer.innerHTML = '<p>未找到结果。</p>';
     }
+
+
+}
+
 
     async function sendMessage() {
         const input = document.getElementById('chat-input');

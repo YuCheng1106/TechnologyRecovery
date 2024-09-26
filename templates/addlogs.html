@@ -222,15 +222,28 @@
             color: #856404;
         }
 
-        .loading {
-            width: 20px;
-            height: 20px;
-            border: 2px solid #fff;
-            border-top-color: transparent;
-            border-radius: 100%;
-            animation: circle infinite 0.75s linear;
-            margin: 0 auto; /* 让动画居中显示 */
-            display: block; /* 确保动画元素为块级元素，以便居中 */
+        .loading-dots::after {
+            font-size: 16px;
+            content: '';
+            display: inline-block;
+            width: 1em;
+            text-align: left;
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% {
+                content: '';
+            }
+            40% {
+                content: '.';
+            }
+            60% {
+                content: '..';
+            }
+            80%, 100% {
+                content: '...';
+            }
         }
 
         @keyframes circle {
@@ -341,6 +354,17 @@
             background-color: white;
             color: black;
         }
+
+        #groupSelector {
+            height: 30px;
+            padding: 0 0px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            background-color: #ffffff;
+            margin-left: 20px; /* 给选择器和搜索框按钮之间留一些间距 */
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -395,7 +419,7 @@
                id="datePicker" name="date" value="{{ current_date }}" readonly>
         <!-- 添加组选择器 -->
         <label for="groupSelector">选择组:</label>
-        <select id="groupSelector" name="group" style="font-size: 16px">
+        <select id="groupSelector" name="group" style="font-size: 16px;margin-top:-5px;margin-left:5px;width:auto">
             <!-- 这里的选项将通过JS动态填充 -->
         </select>
     </div>
@@ -437,21 +461,45 @@
 </div>
 
 <script>
-    // 获取后端传递的群组数据
-    const groups = {{ groups | tojson}};
-    // 获取 select 元素
-    const groupSelector = document.getElementById('groupSelector');
+    con1tent = '这是标准。'
+    currentgroupuuid= ''
+    document.addEventListener('DOMContentLoaded', async function () {
+        fetch('/api/groups')
+            .then(response => response.json())
+            .then(data => {
+                const groupSelector = document.getElementById('groupSelector');
+                data.groups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.textContent = group.name;
+                    groupSelector.appendChild(option);
+                });
 
-    // 动态填充 select 选项
-    const option = document.createElement('option');
-    option.value = "";  // 选项的 value 设置为群组的 uuid
-    option.textContent = "个人";  // 选项的文本设置为群组的 name
-    groupSelector.appendChild(option);  // 将选项添加到 select 中
-    groups.forEach(group => {
-        const option = document.createElement('option');
-        option.value = group.uuid;  // 选项的 value 设置为群组的 uuid
-        option.textContent = group.name;  // 选项的文本设置为群组的 name
-        groupSelector.appendChild(option);  // 将选项添加到 select 中
+                groupSelector.addEventListener('change', function () {
+                    const groupId = this.value;
+                    fetch(`/api/groups/${groupId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Group details data:', data);
+                            con1tent = data.worklog_standard;
+                            currentgroupuuid= data.uuid
+                            {#console.log(con1tent)#}
+                            closeModal()
+                            closeStandard()
+
+                            // 获取用户名称并更新
+                            Promise.all([
+                                ...data.admin_users.map(uuid => fetch(`/api/users/${uuid}`).then(response => response.json())),
+                                ...data.user_users.map(uuid => fetch(`/api/users/${uuid}`).then(response => response.json()))
+                            ]).then(users => {
+                                const adminNames = users.slice(0, data.admin_users.length).map(user => user.name);
+                                const userNames = users.slice(data.admin_users.length).map(user => user.name);
+                            });
+                        });
+                });
+
+                groupSelector.dispatchEvent(new Event('change')); // 触发一次默认加载第一个组的信息
+            });
     });
 
     window.onload = function () {
@@ -478,6 +526,14 @@
     const saveButton = document.querySelector('.submitbutton');
     const successAlert = document.getElementById('successAlert');
     const errorAlert = document.getElementById('errorAlert');
+
+    function showStandard() {
+        const modal = document.getElementById('m1odal');
+        const modalBody = document.getElementById('m1odalBody');
+        modalBody.innerText = con1tent;
+
+        modal.style.display = 'block';
+    }
 
     async function submitLog() {
         const canSubmit = await saveLog(); // 调用saveLog并获取返回值
@@ -523,7 +579,7 @@
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`  // 设置 Authorization 头部
                 },
-                body: JSON.stringify({ text: logData, group_uuid: document.getElementById("groupSelector").value})
+                body: JSON.stringify({text: logData, group_uuid:currentgroupuuid})
             });
 
             const responseData = await response.json();
@@ -567,7 +623,7 @@
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({text})  // 注意这里是 { text }
+            body: JSON.stringify({text})
         })
 
         if (!response.ok) {
@@ -629,17 +685,6 @@
     // 调用使弹窗可拖动的函数
     dragElement(document.getElementById('modal'));
 
-    con1tent = '这是标准。'
-
-
-    function showStandard() {
-        const modal = document.getElementById('m1odal');
-        const modalBody = document.getElementById('m1odalBody');
-        modalBody.innerText = con1tent;
-
-        modal.style.display = 'block';
-    }
-
     // 关闭弹窗的函数
     function closeStandard() {
         document.getElementById('m1odal').style.display = 'none';
@@ -666,12 +711,13 @@
         }
         closeModal();
         // 显示加载动画并隐藏“保存”文字
-        saveButton.innerHTML = '<div class="loading"></div>';
+        saveButton.innerHTML = '<div class="loading-dots"></div>';
 
-        const combinedText = `姓名：${name}\n时间：${date}\n工作日志：${log}`;
+        const combinedText = `${con1tent}\n\n姓名：${name}\n时间：${date}\n工作日志：${log}`;
+        {#console.log('Combined text:', combinedText);#}
         try {
             const checkedText = await checkText(combinedText);
-            console.log(checkedText)
+            {#console.log(checkedText)#}
             showModal(checkedText);
 
             localStorage.setItem('name', name);
@@ -689,7 +735,6 @@
 
 
     function clearLog() {
-        nameInput.value = '';
         datePicker.value = new Date().toISOString().split('T')[0];
         textArea.value = '';
     }

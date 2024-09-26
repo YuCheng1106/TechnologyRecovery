@@ -32,7 +32,7 @@
         }
 
         html {
-            background: lightskyblue;
+            background: linear-gradient(to right, #15ccff, #7772ff);
         }
 
         .back-button {
@@ -64,6 +64,9 @@
             height: 550px;
             /* 相对定位 */
             position: relative;
+            top: 50%;
+
+
         }
 
         .welcome {
@@ -310,14 +313,14 @@
 
 </head>
 <body>
-<a href="/" class="back-button">
+<a href="/" class="back-button" style="z-index: 999">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
               stroke-linejoin="round"/>
     </svg>
     返回
 </a>
-<div id="root" style="width:100%" style="position:fixed;width:100px">
+<div id="root" style="position:fixed;width:100%">
     <div class="container">
         <div class="welcome">
             <div class="pinkbox">

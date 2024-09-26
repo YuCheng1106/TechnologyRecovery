@@ -125,17 +125,22 @@
         }
 
         th:nth-child(1), td:nth-child(1) {
-            width: 15%; /* 姓名列宽度 */
+            width: 8%; /* 姓名列宽度 */
             text-align: center;
         }
 
         th:nth-child(2), td:nth-child(2) {
-            width: 15%; /* 时间列宽度 */
+            width: 8%; /* 时间列宽度 */
             text-align: center;
         }
 
         th:nth-child(3), td:nth-child(3) {
-            width: 70%; /* 工作日志列宽度 */
+            width: 10%; /* 工作组列宽度 */
+            text-align: center;
+        }
+
+        th:nth-child(4), td:nth-child(4) {
+            width: 74%; /* 工作日志列宽度 */
             text-align: left; /* 工作日志居左对齐 */
         }
 
@@ -178,7 +183,6 @@
 
         <!-- 添加组选择器 -->
         <select id="groupSelector" onchange="filterByGroup()">
-            <option value="all">全部</option>
             <!-- 动态生成组的选项 -->
         </select>
     </div>
@@ -188,6 +192,7 @@
             <tr>
                 <th>姓名</th>
                 <th>时间</th>
+                <th>工作组</th>
                 <th>工作日志</th>
             </tr>
             </thead>
@@ -195,11 +200,18 @@
             <!-- 动态渲染日志 -->
             </tbody>
         </table>
+        <div id="noLogsMessage"
+             style="display: none; text-align: center; margin-top: 50px;color: black;font-size: 16px">
+            暂未找到工作日志
+        </div>
     </div>
 </div>
 <script>
     const groups = {{ groups | tojson }};
     const logs = {{ logs | tojson }};
+    const user_uuid = "{{ user_uuid }}";  // 获取用户id
+    const role = "{{ role }}";  // 获取用户角色
+
     const groupSelector = document.getElementById('groupSelector');
     const logTableBody = document.getElementById('logTableBody');
 
@@ -209,6 +221,12 @@
     defaultOption.textContent = "个人";  // 选项的文本设置为 "个人"
     groupSelector.appendChild(defaultOption);
 
+    if (role === "admin") {  // 仅在 admin 角色时添加“全部”选项
+        const allOption = document.createElement('option');
+        allOption.value = "all";  // 选项的 value 设置为 "all"
+        allOption.textContent = "全部";  // 选项的文本设置为 "全部"
+        groupSelector.appendChild(allOption);
+    }
     // 渲染组选项
     groups.forEach(group => {
         const option = document.createElement('option');
@@ -218,31 +236,74 @@
     });
 
     // 根据日志数据渲染表格内容
-    function renderLogs(filteredLogs) {
+    async function renderLogs(filteredLogs) {
+
         logTableBody.innerHTML = "";  // 清空表格
-        filteredLogs.forEach(log => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
+        if (filteredLogs.length === 0) {
+            noLogsMessage.style.display = 'block'; // 显示“暂无工作日志”消息
+        } else {
+            noLogsMessage.style.display = 'none';  // 隐藏消息
+            for (const log of filteredLogs) {
+                const groupName = await getGroupName(log.group_uuid);  // 根据 UUID 获取组名
+
+                // 找到 '解决问题：' 的位置并删除其前面的内容
+                const startIndex = log.content.indexOf("解决问题：");
+                let formattedContent = log.content;
+
+                if (startIndex !== -1) {
+                    // 从 '解决问题：' 开始截取内容
+                    formattedContent = log.content.substring(startIndex);
+                }
+
+                // 替换文本并加上加重标签
+                formattedContent = formattedContent
+                    .replace("解决问题：", "<strong>解决问题：</strong>")
+                    .replace("解决方法：", "<br/><strong>解决方法：</strong>")
+                    .replace("解决效果：", "<br/><strong>解决效果：</strong>");
+
+                // 创建表格行
+                const row = document.createElement('tr');
+                row.innerHTML = `
                 <td>${log.user_name}</td>
                 <td>${new Date(log.update_datetime).toLocaleString()}</td>
-                <td>${log.content}</td>
+                <td>${groupName}</td> <!-- 使用从 API 获取的组名 -->
+                <td>${formattedContent}</td>
             `;
-            logTableBody.appendChild(row);
-        });
+                logTableBody.appendChild(row);
+            }
+        }
     }
 
-    // 初始渲染全部日志
-    renderLogs(logs);
+
+    // 初始渲染个人日志
+    renderLogs(logs.filter(log => log.user_uuid === user_uuid));
+
+    populateUserGroups();  // 填充用户所在的组
 
     // 根据选择的组筛选日志
     function filterByGroup() {
         const selectedGroupUuid = groupSelector.value;
         let filteredLogs = logs;
         console.log(selectedGroupUuid, filteredLogs)
-        if (selectedGroupUuid !== "all") {
+        if (selectedGroupUuid === "") {  // 当选择“个人”
+            filteredLogs = logs.filter(log => log.user_uuid === user_uuid);
+        } else if (selectedGroupUuid === "all") {  // 当选择“全部”
+            filteredLogs = logs;  // 不进行筛选，显示所有日志
+        } else {
             filteredLogs = logs.filter(log => log.group_uuid === selectedGroupUuid);
         }
         renderLogs(filteredLogs);
+    }
+
+    async function getGroupName(group_uuid) {
+        try {
+            const response = await fetch(`/api/groups/uuid/${group_uuid}`);
+            const data = await response.json();
+            return data.name; // 假设返回的 JSON 中包含组名为 name
+        } catch (error) {
+            console.error('Error fetching group name:', error);
+            return 'Unknown';
+        }
     }
 
     // 搜索日志
@@ -260,6 +321,38 @@
             searchLogs();
         }
     });
+
+    // 获取用户所在的组
+    async function loadUserGroups() {
+        let response;
+        if (role === 'admin') {
+            response = await fetch(`/api/groups/search_admin_users_by_uuid/${user_uuid}`);
+            console.log(response)
+        } else {
+            response = await fetch(`/api/groups/search_user_users_by_uuid/${user_uuid}`);
+            console.log(response)
+        }
+
+        if (!response.ok) {
+            console.error('Failed to fetch user groups');
+            return [];
+        }
+
+        const data = await response.json();
+        return data.group_uuids; // 返回用户所在的组 UUID
+    }
+
+    async function populateUserGroups() {
+        const userGroupUuids = await loadUserGroups();
+
+        userGroupUuids.forEach(async (groupUuid) => {
+            const groupName = await getGroupName(groupUuid); // 获取组名
+            const option = document.createElement('option');
+            option.value = groupUuid;  // 选项的 value 设置为群组的 uuid
+            option.textContent = groupName;  // 选项的文本设置为群组的 name
+            groupSelector.appendChild(option);  // 将选项添加到 select 中
+        });
+    }
 
 </script>
 </body>
